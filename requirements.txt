@@ -1,51 +1,48 @@
-# Enigma-Apex Prop Trading Panel Requirements
+# Core dependencies for Enigma-Apex Prop Trading Panel
+# Python 3.11+ required
 
-# Core Python packages
-asyncio>=3.4.3
-aiohttp>=3.8.0
-websockets>=10.0
-
-# OCR and Computer Vision
-opencv-python>=4.7.0
-pillow>=9.0.0
-pytesseract>=0.3.10
+# OCR and Image Processing
 easyocr>=1.7.0
-numpy>=1.21.0
+pytesseract>=0.3.10
+opencv-python>=4.8.0
+mss>=9.0.1
+Pillow>=10.0.0
+numpy>=1.24.0
 
-# Machine Learning (for OCR improvements)
-scikit-learn>=1.1.0
-
-# Data Processing
-pandas>=1.5.0
-pyyaml>=6.0
-
-# API Framework
-fastapi>=0.100.0
-uvicorn>=0.22.0
+# Web Server and API
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+websockets>=11.0.0
+aiofiles>=23.0.0
 
 # Authentication and Security
-python-jose[cryptography]>=3.3.0
+pyjwt>=2.8.0
 passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.6
 
-# Database (for trade logging)
+# Database
+aiosqlite>=0.19.0
 sqlalchemy>=2.0.0
-alembic>=1.11.0
 
-# Monitoring and Logging
-prometheus-client>=0.16.0
+# Scientific Computing
+pandas>=2.0.0
+scipy>=1.11.0
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.4.0
+httpx>=0.25.0
+asyncio-mqtt>=0.13.0
 
 # Development and Testing
-pytest>=7.0.0
+pytest>=7.4.0
 pytest-asyncio>=0.21.0
-pytest-cov>=4.0.0
 black>=23.0.0
-flake8>=6.0.0
-mypy>=1.4.0
+mypy>=1.6.0
 
-# Windows-specific packages
-pywin32>=306; sys_platform == "win32"
-wmi>=1.5.1; sys_platform == "win32"
+# Windows-specific dependencies
+pywin32>=306 ; sys_platform == "win32"
+winsound>=0.37 ; sys_platform == "win32"
 
-# Optional: Advanced ML for signal processing
-# tensorflow>=2.13.0
-# torch>=2.0.0
+# NinjaTrader Integration
+pythonnet>=3.0.0

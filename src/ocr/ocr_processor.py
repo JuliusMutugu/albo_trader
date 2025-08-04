@@ -280,6 +280,55 @@ class OCRProcessor:
             self.logger.error(f"Error in get_latest_reading: {e}")
             return None
     
+    async def read_enigma_signals(self) -> Dict[str, Any]:
+        """
+        Read AlgoBox Enigma signals and return formatted data
+        Compatible with system_check.py expectations
+        """
+        try:
+            reading = await self.get_latest_reading()
+            
+            if reading:
+                return {
+                    'status': 'success',
+                    'data': {
+                        'power_score': reading.get('power_score', 0),
+                        'confluence_level': reading.get('confluence_level', 'L1'),
+                        'signal_color': reading.get('signal_color', 'NEUTRAL'),
+                        'macvu_state': reading.get('macvu_state', 'NEUTRAL'),
+                        'confidence': reading.get('overall_confidence', 0.0),
+                        'timestamp': reading.get('timestamp', datetime.now().isoformat())
+                    }
+                }
+            else:
+                return {
+                    'status': 'no_signal',
+                    'data': {
+                        'power_score': 0,
+                        'confluence_level': 'L1',
+                        'signal_color': 'NEUTRAL',
+                        'macvu_state': 'NEUTRAL',
+                        'confidence': 0.0,
+                        'timestamp': datetime.now().isoformat()
+                    },
+                    'error': 'No valid signal detected'
+                }
+                
+        except Exception as e:
+            self.logger.error(f"Error reading Enigma signals: {e}")
+            return {
+                'status': 'error',
+                'data': {
+                    'power_score': 0,
+                    'confluence_level': 'L1',
+                    'signal_color': 'NEUTRAL',
+                    'macvu_state': 'NEUTRAL',
+                    'confidence': 0.0,
+                    'timestamp': datetime.now().isoformat()
+                },
+                'error': str(e)
+            }
+    
     async def _capture_all_regions(self) -> Dict[str, np.ndarray]:
         """Capture all defined regions from screen"""
         captures = {}

@@ -51,23 +51,64 @@ class WebSocketMessage:
     
     def to_json(self) -> str:
         """Convert message to JSON string"""
-        return json.dumps({
-            'type': self.message_type.value,
-            'data': self.data,
-            'client_id': self.client_id,
-            'timestamp': self.timestamp.isoformat()
-        })
+        try:
+            # Ensure timestamp is valid
+            timestamp_str = self.timestamp.isoformat() if self.timestamp else datetime.now().isoformat()
+            
+            return json.dumps({
+                'type': self.message_type.value,
+                'data': self.data,
+                'client_id': self.client_id,
+                'timestamp': timestamp_str
+            })
+        except Exception as e:
+            # Fallback to basic message
+            return json.dumps({
+                'type': 'error',
+                'data': {'error': f'Failed to serialize message: {str(e)}'},
+                'client_id': self.client_id or 'unknown',
+                'timestamp': datetime.now().isoformat()
+            })
     
     @classmethod
     def from_json(cls, json_str: str) -> 'WebSocketMessage':
         """Create message from JSON string"""
-        data = json.loads(json_str)
-        return cls(
-            message_type=MessageType(data['type']),
-            data=data['data'],
-            client_id=data.get('client_id'),
-            timestamp=datetime.fromisoformat(data['timestamp'])
-        )
+        try:
+            data = json.loads(json_str)
+            
+            # Handle different message type formats
+            message_type_str = data.get('type', 'heartbeat')
+            try:
+                message_type = MessageType(message_type_str)
+            except ValueError:
+                # If message type not recognized, default to heartbeat
+                message_type = MessageType.HEARTBEAT
+            
+            # Handle timestamp parsing
+            timestamp = None
+            if 'timestamp' in data:
+                try:
+                    if isinstance(data['timestamp'], str):
+                        timestamp = datetime.fromisoformat(data['timestamp'])
+                    elif isinstance(data['timestamp'], (int, float)):
+                        timestamp = datetime.fromtimestamp(data['timestamp'])
+                except (ValueError, TypeError):
+                    timestamp = datetime.now()
+            
+            return cls(
+                message_type=message_type,
+                data=data.get('data', {}),
+                client_id=data.get('client_id'),
+                timestamp=timestamp or datetime.now()
+            )
+        except Exception as e:
+            # If parsing fails completely, create a basic heartbeat message
+            return cls(
+                message_type=MessageType.HEARTBEAT,
+                data={'error': f'Failed to parse message: {str(e)}', 'original': json_str[:100]},
+                client_id=None,
+                timestamp=datetime.now()
+            )
 
 class ConnectedClient:
     """Connected WebSocket client information"""
@@ -183,8 +224,11 @@ class WebSocketServer:
         
         self.logger.info("WebSocket server stopped")
     
-    async def _handle_client(self, websocket, path):
+    async def _handle_client(self, websocket):
         """Handle new client connection"""
+        # Get path from websocket request
+        path = websocket.path if hasattr(websocket, 'path') else '/'
+        
         client_id = str(uuid.uuid4())
         client_type = self._determine_client_type(path)
         
@@ -194,7 +238,7 @@ class WebSocketServer:
                 websocket=websocket,
                 client_type=client_type,
                 client_id=client_id,
-                user_agent=websocket.request_headers.get('User-Agent', 'Unknown')
+                user_agent=getattr(websocket, 'request_headers', {}).get('User-Agent', 'Unknown')
             )
             
             # Add to client tracking
@@ -211,7 +255,15 @@ class WebSocketServer:
                     'client_id': client_id,
                     'client_type': client_type.value,
                     'server_time': datetime.now().isoformat(),
-                    'status': 'connected'
+                    'status': 'connected',
+                    'welcome': True,
+                    'server_status': 'running',
+                    'enigma_data': {
+                        'power_score': 0,
+                        'confluence_level': 'L1', 
+                        'signal_color': 'NEUTRAL',
+                        'macvu_state': 'NEUTRAL'
+                    }
                 }
             )
             await self._send_to_client(client_id, welcome_msg)
@@ -241,6 +293,8 @@ class WebSocketServer:
     async def _process_message(self, client_id: str, raw_message: str):
         """Process incoming message from client"""
         try:
+            print(f"DEBUG: Processing message from {client_id}: {raw_message[:100]}...")
+            
             message = WebSocketMessage.from_json(raw_message)
             message.client_id = client_id
             
@@ -252,21 +306,32 @@ class WebSocketServer:
                 self.clients[client_id].last_heartbeat = datetime.now()
                 self.clients[client_id].message_count += 1
             
+            print(f"DEBUG: Message type: {message.message_type.value}")
+            
             # Route message to appropriate handler
             if message.message_type in self.message_handlers:
+                print(f"DEBUG: Calling handler for {message.message_type.value}")
                 await self.message_handlers[message.message_type](client_id, message)
+                print(f"DEBUG: Handler completed for {message.message_type.value}")
             else:
                 self.logger.warning(f"No handler for message type: {message.message_type.value}")
+                print(f"DEBUG: No handler for message type: {message.message_type.value}")
                 
         except Exception as e:
             self.logger.error(f"Error processing message from {client_id}: {e}")
+            print(f"DEBUG: Error in _process_message: {e}")
+            import traceback
+            traceback.print_exc()
             
             # Send error response
-            error_msg = WebSocketMessage(
-                MessageType.ERROR,
-                {'error': str(e), 'original_message': raw_message[:100]}
-            )
-            await self._send_to_client(client_id, error_msg)
+            try:
+                error_msg = WebSocketMessage(
+                    MessageType.ERROR,
+                    {'error': str(e), 'original_message': raw_message[:100]}
+                )
+                await self._send_to_client(client_id, error_msg)
+            except Exception as send_error:
+                print(f"DEBUG: Failed to send error message: {send_error}")
     
     async def _handle_heartbeat(self, client_id: str, message: WebSocketMessage):
         """Handle heartbeat message"""
@@ -285,22 +350,43 @@ class WebSocketServer:
     
     async def _handle_status_request(self, client_id: str, message: WebSocketMessage):
         """Handle status request"""
-        status_data = {
-            'server_status': 'running' if self.running else 'stopped',
-            'connected_clients': len(self.clients),
-            'client_types': {
-                client_type.value: len(client_ids) 
-                for client_type, client_ids in self.clients_by_type.items()
-            },
-            'uptime_seconds': (datetime.now() - self.stats['start_time']).total_seconds() if self.stats['start_time'] else 0,
-            'statistics': self.stats.copy()
-        }
-        
-        response = WebSocketMessage(
-            MessageType.STATUS_REQUEST,
-            status_data
-        )
-        await self._send_to_client(client_id, response)
+        try:
+            status_data = {
+                'server_status': 'running' if self.running else 'stopped',
+                'connected_clients': len(self.clients),
+                'client_types': {
+                    client_type.value: len(client_ids) 
+                    for client_type, client_ids in self.clients_by_type.items()
+                },
+                'uptime_seconds': (datetime.now() - self.stats['start_time']).total_seconds() if self.stats['start_time'] else 0,
+                'statistics': {
+                    'total_connections': self.stats.get('total_connections', 0),
+                    'messages_sent': self.stats.get('messages_sent', 0),
+                    'messages_received': self.stats.get('messages_received', 0),
+                    'last_activity': self.stats.get('last_activity', datetime.now()).isoformat() if self.stats.get('last_activity') else None
+                },
+                'enigma_data': {
+                    'power_score': 0,
+                    'confluence_level': 'L1', 
+                    'signal_color': 'NEUTRAL',
+                    'macvu_state': 'NEUTRAL'
+                }
+            }
+            
+            response = WebSocketMessage(
+                MessageType.STATUS_REQUEST,
+                status_data
+            )
+            await self._send_to_client(client_id, response)
+            
+        except Exception as e:
+            self.logger.error(f"Error handling status request: {e}")
+            # Send simple error response
+            error_response = WebSocketMessage(
+                MessageType.ERROR,
+                {'error': 'Failed to get status', 'details': str(e)}
+            )
+            await self._send_to_client(client_id, error_response)
     
     async def _handle_mobile_command(self, client_id: str, message: WebSocketMessage):
         """Handle mobile app commands"""
@@ -327,14 +413,25 @@ class WebSocketServer:
             return
         
         try:
+            print(f"DEBUG: Sending message to {client_id}: {message.message_type.value}")
             client = self.clients[client_id]
-            await client.websocket.send(message.to_json())
+            
+            # Generate JSON first to catch any serialization errors
+            json_data = message.to_json()
+            print(f"DEBUG: JSON length: {len(json_data)}")
+            
+            await client.websocket.send(json_data)
             self.stats['messages_sent'] += 1
+            print(f"DEBUG: Message sent successfully to {client_id}")
             
         except websockets.exceptions.ConnectionClosed:
+            print(f"DEBUG: Connection closed for {client_id}")
             await self._remove_client(client_id)
         except Exception as e:
             self.logger.error(f"Error sending message to client {client_id}: {e}")
+            print(f"DEBUG: Error in _send_to_client: {e}")
+            import traceback
+            traceback.print_exc()
             await self._remove_client(client_id)
     
     async def _remove_client(self, client_id: str):
@@ -490,3 +587,48 @@ class WebSocketServer:
             },
             'is_healthy': self.is_healthy()
         }
+
+# Main execution
+if __name__ == "__main__":
+    import sys
+    import traceback
+    
+    # Setup logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
+    async def main():
+        """Main server execution"""
+        try:
+            print("🚀 Starting Enigma-Apex WebSocket Server...")
+            server = WebSocketServer()
+            
+            print("✅ Server created successfully")
+            await server.start()
+            
+            print("✅ Server started on ws://localhost:8765")
+            print("📡 Ready for NinjaTrader connections!")
+            
+            # Keep running until interrupted
+            try:
+                await asyncio.Future()  # Run forever
+            except KeyboardInterrupt:
+                print("\n🛑 Shutting down server...")
+                await server.stop()
+                print("✅ Server stopped")
+                
+        except Exception as e:
+            print(f"❌ Server error: {e}")
+            traceback.print_exc()
+            sys.exit(1)
+    
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("\n👋 Server stopped by user")
+    except Exception as e:
+        print(f"❌ Critical error: {e}")
+        traceback.print_exc()
+        sys.exit(1)

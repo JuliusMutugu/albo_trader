@@ -85,6 +85,10 @@ class ConfigManager:
             self.logger.error(f"Error getting config value for '{key}': {e}")
             return default
     
+    def get_settings(self) -> Dict[str, Any]:
+        """Get complete settings dictionary"""
+        return self.config_data.copy()
+    
     def set(self, key: str, value: Any, save: bool = False):
         """Set configuration value using dot notation"""
         try:
