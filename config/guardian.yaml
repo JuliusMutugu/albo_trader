@@ -1,0 +1,122 @@
+# Enigma-Apex Guardian Configuration
+# This file contains the main configuration settings for the Guardian system
+
+# Environment (development/production)
+environment: development
+
+# Database configuration
+database:
+  path: "data/guardian.db"
+
+# OCR processing settings
+ocr:
+  regions_config: "config/ocr_regions.json"
+  confidence_threshold: 0.8
+  read_interval: 1.0  # seconds between readings
+  min_power_score: 50
+  required_confluence: ["L3", "L4"]
+
+# Kelly Criterion position sizing
+kelly:
+  trade_history_size: 100
+  min_trades_for_kelly: 20
+  max_position_percentage: 0.05  # 5% max position size
+  kelly_multiplier: 0.5  # Half-Kelly safety factor
+  min_confidence: 0.6
+
+# Cadence tracking (2 AM / 3 PM failures)
+cadence:
+  reading_history_hours: 48
+  low_power_threshold: 30
+  failure_duration_minutes: 60
+  critical_failure_threshold: 15
+  recovery_threshold: 60
+
+# Apex prop firm compliance
+compliance:
+  account_size: 50000.0
+  max_loss_percentage: 0.08  # 8% max loss
+  daily_loss_percentage: 0.05  # 5% daily loss
+  trailing_stop_percentage: 0.05  # 5% trailing stop
+  max_position_risk: 0.02  # 2% max risk per trade
+  max_daily_trades: 50
+  max_consecutive_losses: 5
+  monitor_interval: 30
+
+# WebSocket server for NinjaTrader & mobile
+websocket:
+  host: "localhost"
+  port: 8765
+  ssl_cert_path: null
+  ssl_key_path: null
+  ping_interval: 30
+  ping_timeout: 10
+
+# Trading filters and criteria
+filters:
+  min_power: 50
+  required_confluence: ["L3", "L4"]
+  required_signals: ["GREEN", "BLUE"]
+  macvu_filter: true
+  cadence_threshold: true
+
+# Risk management
+risk:
+  monitor_interval: 5
+  atr_period: 14
+  stop_loss_atr_multiplier: 1.5
+  profit_target_atr_multiplier: 2.0
+  emergency_stop_conditions:
+    - "apex_violation"
+    - "cadence_failure"
+    - "system_error"
+
+# Logging configuration
+logging:
+  level: "INFO"
+  file: "logs/guardian.log"
+  max_size_mb: 50
+  backup_count: 5
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# NinjaTrader integration (placeholder)
+ninjatrader:
+  websocket_port: 9999
+  host: "localhost"
+  timeout: 30
+  auto_connect: true
+  instruments: ["ES", "NQ", "YM", "RTY"]
+  order_timeout: 10
+
+# Mobile app configuration (placeholder)
+mobile:
+  api_port: 8080
+  authentication: true
+  ssl_enabled: false
+  session_timeout: 3600
+  max_connections: 10
+
+# System monitoring
+monitoring:
+  health_check_interval: 60
+  component_timeout: 30
+  alert_thresholds:
+    ocr_failure_rate: 0.1
+    compliance_warnings: 5
+    memory_usage_mb: 1000
+    cpu_usage_percent: 80
+
+# Performance settings
+performance:
+  ocr_parallel_processing: true
+  max_concurrent_ocr: 3
+  database_connection_pool: 5
+  websocket_max_connections: 50
+  cache_size_mb: 100
+
+# Emergency settings
+emergency:
+  auto_stop_on_violation: true
+  emergency_contacts: []
+  backup_data_interval: 3600
+  max_recovery_attempts: 3
