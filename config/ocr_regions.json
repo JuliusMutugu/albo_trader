@@ -10,37 +10,77 @@
             "description": "Power Score region",
             "validation_pattern": ".*"
         },
-        "confluence_level": {
+        "confluence_l1": {
             "coordinates": [
                 100,
                 140,
-                200,
-                170
+                150,
+                160
             ],
-            "description": "Confluence Level region",
+            "description": "L1 Confluence region",
+            "validation_pattern": ".*"
+        },
+        "confluence_l2": {
+            "coordinates": [
+                100,
+                170,
+                150,
+                190
+            ],
+            "description": "L2 Confluence region",
+            "validation_pattern": ".*"
+        },
+        "confluence_l3": {
+            "coordinates": [
+                100,
+                200,
+                150,
+                220
+            ],
+            "description": "L3 Confluence region",
+            "validation_pattern": ".*"
+        },
+        "confluence_l4": {
+            "coordinates": [
+                100,
+                230,
+                150,
+                250
+            ],
+            "description": "L4 Confluence region",
             "validation_pattern": ".*"
         },
         "signal_color": {
             "coordinates": [
-                100,
-                180,
                 200,
+                180,
+                250,
                 210
             ],
             "description": "Signal Color region",
             "validation_pattern": ".*"
         },
-        "macvu_state": {
+        "macvu_status": {
             "coordinates": [
-                100,
+                300,
                 220,
-                200,
+                400,
                 250
             ],
-            "description": "Macvu State region",
+            "description": "MACVU Status region",
+            "validation_pattern": ".*"
+        },
+        "atr_value": {
+            "coordinates": [
+                450,
+                100,
+                550,
+                130
+            ],
+            "description": "ATR Value region",
             "validation_pattern": ".*"
         }
     },
     "screen_resolution": null,
-    "last_updated": "2025-08-04T23:20:33.442987"
+    "last_updated": "2025-08-05T12:00:00.000000"
 }

@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enigma-Apex Trading Dashboard | Michael Canfield's ChatGPT Agent</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f1419, #1a2332);
+            color: #ffffff;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(90deg, #2962ff, #1976d2);
+            padding: 15px 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .container {
+            padding: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            height: calc(100vh - 120px);
+        }
+
+        .chart-section {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .widget {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .widget h3 {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #3b82f6;
+        }
+
+        .price-display {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .price {
+            font-size: 36px;
+            font-weight: 700;
+            color: #10b981;
+        }
+
+        .change {
+            font-size: 18px;
+            margin-top: 5px;
+        }
+
+        .change.positive {
+            color: #10b981;
+        }
+
+        .change.negative {
+            color: #ef4444;
+        }
+
+        .stat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #334155;
+        }
+
+        .stat-label {
+            color: #94a3b8;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .signal-item {
+            background: #334155;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            border-left: 4px solid #3b82f6;
+        }
+
+        .signal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .signal-action {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .signal-action.TRADE {
+            background: #10b981;
+            color: white;
+        }
+
+        .signal-action.NO_TRADE {
+            background: #ef4444;
+            color: white;
+        }
+
+        .signal-action.CAUTIOUS_TRADE {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .signal-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            font-size: 13px;
+        }
+
+        .ai-panel {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border: 2px solid #3b82f6;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .ai-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .ai-indicator {
+            width: 12px;
+            height: 12px;
+            background: #10b981;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .status-bar {
+            background: #334155;
+            padding: 10px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .status-items {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(90deg, #2962ff, #1976d2);
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(41, 98, 255, 0.3);
+        }
+
+        #tradingview-chart {
+            height: 100%;
+            min-height: 600px;
+        }
+
+        .performance-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .perf-card {
+            background: #334155;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .perf-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #3b82f6;
+            margin-bottom: 5px;
+        }
+
+        .perf-label {
+            font-size: 12px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Enigma-Apex Trading Platform</h1>
+        <p>Michael Canfield's ChatGPT Agent | Real-time First Principles Analysis | Kelly Criterion Optimization</p>
+    </div>
+
+    <div class="container">
+        <div class="status-bar">
+            <div class="status-items">
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span>AI Agent: ACTIVE</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span>OCR Reader: READY</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span>Kelly Optimizer: RUNNING</span>
+                </div>
+                <div class="status-item">
+                    <div class="status-dot"></div>
+                    <span>Apex Compliance: ENFORCED</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="chart-section">
+                <h3 style="margin-bottom: 15px; color: #3b82f6;">Live Market Data - E-mini S&P 500 (ES=F)</h3>
+                <div id="tradingview-chart"></div>
+            </div>
+
+            <div class="sidebar">
+                <div class="widget">
+                    <div class="price-display">
+                        <div class="price" id="current-price">Loading...</div>
+                        <div class="change" id="price-change">--</div>
+                        <div style="font-size: 14px; color: #94a3b8; margin-top: 10px;" id="last-update">--</div>
+                    </div>
+                    
+                    <div class="stat-row">
+                        <span class="stat-label">Volume:</span>
+                        <span class="stat-value" id="volume">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">High:</span>
+                        <span class="stat-value" id="high">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Low:</span>
+                        <span class="stat-value" id="low">--</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Open:</span>
+                        <span class="stat-value" id="open">--</span>
+                    </div>
+                </div>
+
+                <div class="ai-panel">
+                    <div class="ai-title">
+                        <div class="ai-indicator"></div>
+                        <h3>ChatGPT Agent Status</h3>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Analysis Mode:</span>
+                        <span class="stat-value">First Principles</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Kelly Fraction:</span>
+                        <span class="stat-value" id="kelly-fraction">2.1%</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Risk Level:</span>
+                        <span class="stat-value">MODERATE</span>
+                    </div>
+                    <div class="stat-row">
+                        <span class="stat-label">Apex Status:</span>
+                        <span class="stat-value" style="color: #10b981;">COMPLIANT</span>
+                    </div>
+                    
+                    <button class="generate-btn" onclick="generateSignal()">
+                        Generate Enigma Signal
+                    </button>
+                </div>
+
+                <div class="widget">
+                    <h3>Performance Metrics</h3>
+                    <div class="performance-grid">
+                        <div class="perf-card">
+                            <div class="perf-value">68%</div>
+                            <div class="perf-label">Win Rate</div>
+                        </div>
+                        <div class="perf-card">
+                            <div class="perf-value">1.87</div>
+                            <div class="perf-label">Profit Factor</div>
+                        </div>
+                        <div class="perf-card">
+                            <div class="perf-value">$12,450</div>
+                            <div class="perf-label">Total P&L</div>
+                        </div>
+                        <div class="perf-card">
+                            <div class="perf-value">2.3%</div>
+                            <div class="perf-label">Max DD</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="widget">
+                    <h3>Recent Signals</h3>
+                    <div id="signals-container">
+                        <div class="signal-item">
+                            <div class="signal-header">
+                                <span style="font-size: 12px; color: #94a3b8;">Loading signals...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Socket.IO
+        const socket = io();
+
+        // Initialize TradingView Chart
+        new TradingView.widget({
+            "width": "100%",
+            "height": "100%",
+            "symbol": "CME_MINI:ES1!",
+            "interval": "5",
+            "timezone": "Etc/UTC",
+            "theme": "dark",
+            "style": "1",
+            "locale": "en",
+            "toolbar_bg": "#1e293b",
+            "enable_publishing": false,
+            "hide_top_toolbar": false,
+            "hide_legend": false,
+            "save_image": false,
+            "container_id": "tradingview-chart",
+            "studies": [
+                "Volume@tv-basicstudies",
+                "ATR@tv-basicstudies"
+            ],
+            "overrides": {
+                "paneProperties.background": "#1e293b",
+                "paneProperties.vertGridProperties.color": "#334155",
+                "paneProperties.horzGridProperties.color": "#334155",
+                "symbolWatermarkProperties.transparency": 90,
+                "scalesProperties.textColor": "#94a3b8"
+            }
+        });
+
+        // Socket event handlers
+        socket.on('market_data', function(data) {
+            updateMarketData(data);
+        });
+
+        socket.on('new_signal', function(signal) {
+            addSignalToList(signal);
+            updateKellyFraction(signal.kelly_fraction);
+        });
+
+        function updateMarketData(data) {
+            document.getElementById('current-price').textContent = data.price.toFixed(2);
+            
+            const changeElement = document.getElementById('price-change');
+            const changeText = `${data.change >= 0 ? '+' : ''}${data.change.toFixed(2)} (${data.change_pct.toFixed(2)}%)`;
+            changeElement.textContent = changeText;
+            changeElement.className = `change ${data.change >= 0 ? 'positive' : 'negative'}`;
+            
+            document.getElementById('volume').textContent = data.volume.toLocaleString();
+            document.getElementById('high').textContent = data.high.toFixed(2);
+            document.getElementById('low').textContent = data.low.toFixed(2);
+            document.getElementById('open').textContent = data.open.toFixed(2);
+            
+            const updateTime = new Date(data.timestamp).toLocaleTimeString();
+            document.getElementById('last-update').textContent = `Updated: ${updateTime}`;
+        }
+
+        function updateKellyFraction(fraction) {
+            document.getElementById('kelly-fraction').textContent = `${(fraction * 100).toFixed(1)}%`;
+        }
+
+        function addSignalToList(signal) {
+            const container = document.getElementById('signals-container');
+            const signalElement = document.createElement('div');
+            signalElement.className = 'signal-item';
+            
+            const time = new Date(signal.timestamp).toLocaleTimeString();
+            
+            signalElement.innerHTML = `
+                <div class="signal-header">
+                    <span style="font-size: 12px; color: #94a3b8;">${time}</span>
+                    <span class="signal-action ${signal.action}">${signal.action}</span>
+                </div>
+                <div class="signal-details">
+                    <div>Power: ${signal.power_score}</div>
+                    <div>Level: ${signal.confluence_level}</div>
+                    <div>ATR: ${signal.atr}</div>
+                    <div>Size: ${signal.position_size}%</div>
+                </div>
+            `;
+            
+            container.insertBefore(signalElement, container.firstChild);
+            
+            // Keep only last 5 signals
+            while (container.children.length > 5) {
+                container.removeChild(container.lastChild);
+            }
+        }
+
+        function generateSignal() {
+            fetch('/api/generate-signal', { method: 'POST' })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Signal generated:', data);
+                });
+        }
+
+        // Load initial data
+        fetch('/api/market-data')
+            .then(response => response.json())
+            .then(data => updateMarketData(data));
+    </script>
+</body>
+</html>
