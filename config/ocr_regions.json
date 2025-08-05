@@ -1,46 +1,46 @@
 {
-  "regions": {
-    "power_score": {
-      "coordinates": [
-        100,
-        100,
-        200,
-        130
-      ],
-      "description": "Power Score region",
-      "validation_pattern": ".*"
+    "regions": {
+        "power_score": {
+            "coordinates": [
+                100,
+                100,
+                200,
+                130
+            ],
+            "description": "Power Score region",
+            "validation_pattern": ".*"
+        },
+        "confluence_level": {
+            "coordinates": [
+                100,
+                140,
+                200,
+                170
+            ],
+            "description": "Confluence Level region",
+            "validation_pattern": ".*"
+        },
+        "signal_color": {
+            "coordinates": [
+                100,
+                180,
+                200,
+                210
+            ],
+            "description": "Signal Color region",
+            "validation_pattern": ".*"
+        },
+        "macvu_state": {
+            "coordinates": [
+                100,
+                220,
+                200,
+                250
+            ],
+            "description": "Macvu State region",
+            "validation_pattern": ".*"
+        }
     },
-    "confluence_level": {
-      "coordinates": [
-        100,
-        140,
-        200,
-        170
-      ],
-      "description": "Confluence Level region",
-      "validation_pattern": ".*"
-    },
-    "signal_color": {
-      "coordinates": [
-        100,
-        180,
-        200,
-        210
-      ],
-      "description": "Signal Color region",
-      "validation_pattern": ".*"
-    },
-    "macvu_state": {
-      "coordinates": [
-        100,
-        220,
-        200,
-        250
-      ],
-      "description": "Macvu State region",
-      "validation_pattern": ".*"
-    }
-  },
-  "screen_resolution": null,
-  "last_updated": "2025-08-04T23:20:33.442987"
+    "screen_resolution": null,
+    "last_updated": "2025-08-04T23:20:33.442987"
 }

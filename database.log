@@ -1,0 +1,15 @@
+2025-08-05 12:13:13,664 - __main__ - INFO - Database initialized successfully
+2025-08-05 12:13:13,843 - __main__ - INFO - Stored signal: TEST_001 for EURUSD
+2025-08-05 12:44:46,044 - __main__ - ERROR - Failed to initialize WebSocket integration: 'EnhancedDatabaseManager' object has no attribute 'initialize'
+2025-08-05 12:53:56,862 - enhanced_database_manager - INFO - Database initialized successfully
+2025-08-05 12:53:56,862 - __main__ - INFO - Enhanced WebSocket integration initialized successfully
+2025-08-05 12:53:56,863 - __main__ - ERROR - Error processing Enigma signal: TradingSignal.__init__() got an unexpected keyword argument 'direction'
+2025-08-05 12:53:56,868 - __main__ - ERROR - Error getting real-time stats: 'EnhancedDatabaseManager' object has no attribute 'get_system_health_score'
+2025-08-05 12:55:27,556 - enhanced_database_manager - INFO - Database initialized successfully
+2025-08-05 12:55:27,556 - __main__ - INFO - Production WebSocket integration initialized successfully
+2025-08-05 12:55:28,136 - enhanced_database_manager - INFO - Stored signal: ENIGMA_20250805_125527_test_cli for EURUSD
+2025-08-05 12:55:28,137 - __main__ - INFO - Stored Enigma signal: ENIGMA_20250805_125527_test_cli - BUY - Power: 85
+2025-08-05 12:55:28,651 - enhanced_database_manager - INFO - Stored signal: ENIGMA_20250805_125528_test_cli for EURUSD
+2025-08-05 12:55:28,651 - __main__ - INFO - Stored Enigma signal: ENIGMA_20250805_125528_test_cli - SELL - Power: 35
+2025-08-05 12:55:29,364 - enhanced_database_manager - INFO - Stored signal: ENIGMA_20250805_125528_test_cli for EURUSD
+2025-08-05 12:55:29,365 - __main__ - INFO - Stored Enigma signal: ENIGMA_20250805_125528_test_cli - BUY - Power: 65

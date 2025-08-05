@@ -9,7 +9,7 @@ import time
 
 async def test_websocket_connection():
     """Test WebSocket server connectivity and basic functionality"""
-    print("🔧 Testing WebSocket Connection...")
+    print(" Testing WebSocket Connection...")
     print("Connecting to ws://localhost:8765...")
     
     try:
