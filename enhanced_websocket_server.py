@@ -19,6 +19,7 @@ import os
 # Add current directory to path to import our integration
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from production_websocket_integration import ProductionWebSocketIntegration
+from desktop_notifier import DesktopNotifier
 
 class MessageType(Enum):
     """WebSocket message types"""
@@ -157,6 +158,9 @@ class EnhancedWebSocketServer:
         
         # Database integration
         self.db_integration = None
+        
+        # Desktop notification system
+        self.desktop_notifier = DesktopNotifier()
         
         # Statistics
         self.stats = {
@@ -413,6 +417,9 @@ class EnhancedWebSocketServer:
             
             enigma_data = message.data.get('enigma_data', {})
             
+            # Send desktop notification for the signal
+            await self._send_signal_notification(enigma_data)
+            
             # Create broadcast message
             broadcast_msg = WebSocketMessage(
                 MessageType.ENIGMA_UPDATE,
@@ -514,6 +521,57 @@ class EnhancedWebSocketServer:
         await self.broadcast_to_all(message)
         self.logger.critical(f"Emergency stop broadcasted: {reason}")
     
+    async def _send_signal_notification(self, enigma_data: Dict[str, Any]):
+        """Send desktop notification for Enigma signal"""
+        try:
+            # Extract signal information from enigma_data
+            signal_data = {
+                'symbol': enigma_data.get('symbol', 'Unknown'),
+                'type': enigma_data.get('signal_type', 'Signal'),
+                'power_score': enigma_data.get('power_score', 0),
+                'direction': enigma_data.get('signal_direction', 'Unknown'),
+                'timestamp': enigma_data.get('timestamp', datetime.now().isoformat()),
+                'confluence_level': enigma_data.get('confluence_level', 'L1'),
+                'signal_color': enigma_data.get('signal_color', 'Unknown')
+            }
+            
+            # Send desktop notification
+            success = await self.desktop_notifier.send_signal_notification(signal_data)
+            
+            if success:
+                self.logger.info(f"Desktop notification sent for {signal_data['symbol']} signal")
+            else:
+                self.logger.warning(f"Failed to send desktop notification for {signal_data['symbol']}")
+                
+        except Exception as e:
+            self.logger.error(f"Error sending signal notification: {e}")
+    
+    async def send_trade_notification(self, trade_data: Dict[str, Any], alert_type: str):
+        """Send desktop notification for trade events"""
+        try:
+            success = await self.desktop_notifier.send_trade_notification(trade_data, alert_type)
+            
+            if success:
+                self.logger.info(f"Trade notification sent: {alert_type} for {trade_data.get('symbol', 'Unknown')}")
+            else:
+                self.logger.warning(f"Failed to send trade notification: {alert_type}")
+                
+        except Exception as e:
+            self.logger.error(f"Error sending trade notification: {e}")
+    
+    async def send_risk_notification(self, risk_data: Dict[str, Any], severity: str):
+        """Send desktop notification for risk alerts"""
+        try:
+            success = await self.desktop_notifier.send_risk_notification(risk_data, severity)
+            
+            if success:
+                self.logger.info(f"Risk notification sent: {severity} severity")
+            else:
+                self.logger.warning(f"Failed to send risk notification: {severity}")
+                
+        except Exception as e:
+            self.logger.error(f"Error sending risk notification: {e}")
+    
     def get_enhanced_statistics(self) -> Dict[str, Any]:
         """Get enhanced server statistics including database metrics"""
         base_stats = {
@@ -538,6 +596,16 @@ class EnhancedWebSocketServer:
             except Exception as e:
                 base_stats['database_integration'] = {
                     'initialized': False,
+                    'error': str(e)
+                }
+        
+        # Add notification stats
+        if self.desktop_notifier:
+            try:
+                notification_stats = self.desktop_notifier.get_notification_stats()
+                base_stats['notifications'] = notification_stats
+            except Exception as e:
+                base_stats['notifications'] = {
                     'error': str(e)
                 }
         

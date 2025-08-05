@@ -253,6 +253,8 @@ class SystemTester:
         required_files = [
             'src/websocket/websocket_server.py',
             'enhanced_database_manager.py',
+            'enhanced_websocket_server.py',
+            'desktop_notifier.py',
             'main.py',
             'requirements.txt',
             'enigma_apex_pro.db'
@@ -277,7 +279,8 @@ class SystemTester:
             import websockets
             import pandas
             import numpy
-            import aiosqlite
+            import plyer
+            import win10toast
             print("  ✅ All Python dependencies available")
         except ImportError as e:
             print(f"  ❌ Missing Python dependency: {e}")
@@ -330,6 +333,64 @@ class SystemTester:
             'disk_percent': disk.percent,
             'websocket_connections': len(websocket_connections)
         }
+    
+    async def test_desktop_notifications(self):
+        """Test desktop notification system"""
+        print("\n🔔 TESTING DESKTOP NOTIFICATIONS")
+        print("=" * 40)
+        
+        try:
+            # Import the desktop notifier
+            from desktop_notifier import DesktopNotifier
+            
+            notifier = DesktopNotifier()
+            print("  ✅ Desktop notifier initialized")
+            
+            # Test signal notification
+            test_signal = {
+                'symbol': 'TESTPAIR',
+                'type': 'L2',
+                'power_score': 75,
+                'direction': 'BUY',
+                'timestamp': time.time()
+            }
+            
+            print("  🔔 Testing signal notification...")
+            success = await notifier.send_signal_notification(test_signal)
+            
+            if success:
+                print("  ✅ Signal notification test passed")
+                notification_status = 'pass'
+            else:
+                print("  ⚠️  Signal notification test failed")
+                self.issues_found.append("Desktop notification system not working")
+                notification_status = 'fail'
+            
+            # Get notification stats
+            stats = notifier.get_notification_stats()
+            print(f"  📊 Notification stats: {stats['total_sent']} sent, {stats['success_rate']:.1f}% success rate")
+            
+            self.test_results['desktop_notifications'] = {
+                'status': notification_status,
+                'signal_test': success,
+                'stats': stats
+            }
+            
+        except ImportError as e:
+            print(f"  ❌ Desktop notification dependencies missing: {e}")
+            self.issues_found.append(f"Notification dependencies missing: {e}")
+            self.test_results['desktop_notifications'] = {
+                'status': 'fail',
+                'error': str(e)
+            }
+            
+        except Exception as e:
+            print(f"  ❌ Desktop notification test failed: {e}")
+            self.issues_found.append(f"Desktop notification error: {e}")
+            self.test_results['desktop_notifications'] = {
+                'status': 'fail', 
+                'error': str(e)
+            }
     
     def generate_test_report(self):
         """Generate comprehensive test report"""
@@ -398,6 +459,7 @@ async def main():
     await tester.test_ninja_endpoint()
     await tester.test_load_performance()
     tester.test_system_resources()
+    await tester.test_desktop_notifications()
     
     # Generate report
     report = tester.generate_test_report()
